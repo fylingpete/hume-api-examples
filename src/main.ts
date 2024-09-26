@@ -272,7 +272,7 @@ function handleError(error: any) {
    */
   function handleWebSocketErrorEvent(error: Error): void {
     console.error('WebSocket error:', error);
-    handleError();
+    handleError(error);
   }
 
   /**
@@ -325,16 +325,14 @@ function handleError(error: any) {
  * The code below does not pertain to the EVI implementation, and only serves to style the UI.
  */
 
-interface Score {
+export interface Score {
   emotion: string;
   score: string;
 }
 
-interface ChatMessage {
+export interface ChatMessage {
   role: Hume.empathicVoice.Role;
   timestamp: string;
-  content: string;
-  scores: Score[];
 }
 
 // Remove or comment out the ChatCard declaration if it's not being used
