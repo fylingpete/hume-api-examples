@@ -16,6 +16,39 @@ function handleError(error: any) {
   // You can add more error handling logic here if needed
 }
 
+// Add this function at the top of your file
+async function enableAutoplay() {
+  try {
+    await document.querySelector('body')?.addEventListener('touchstart', () => {
+      const audio = new Audio();
+      audio.play().then(() => {
+        audio.pause();
+        audio.currentTime = 0;
+        console.log('Autoplay enabled');
+      }).catch(error => {
+        console.error('Failed to enable autoplay:', error);
+      });
+    }, { once: true });
+  } catch (error) {
+    console.error('Error setting up autoplay:', error);
+  }
+}
+
+// Add this function
+function checkAudioContext() {
+  const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+  const audioContext = new AudioContext();
+  
+  if (audioContext.state === 'suspended') {
+    console.warn('AudioContext is suspended. User interaction may be required to start audio playback.');
+    document.body.addEventListener('touchstart', () => {
+      audioContext.resume().then(() => {
+        console.log('AudioContext resumed successfully');
+      });
+    }, { once: true });
+  }
+}
+
 (async () => {
   const toggleBtn = document.querySelector<HTMLButtonElement>('#toggle-btn');
   // Remove the chat div reference
@@ -182,32 +215,39 @@ function handleError(error: any) {
    * play the audio within the playback queue, converting each Blob into playable HTMLAudioElements
    */
   function playAudio(): void {
-    // IF there is nothing in the audioQueue OR audio is currently playing then do nothing
-    if (!audioQueue.length || isPlaying) return;
+    console.log('playAudio called. Queue length:', audioQueue.length);
+    if (!audioQueue.length || isPlaying) {
+      console.log('No audio to play or already playing');
+      return;
+    }
 
-    // update isPlaying state
     isPlaying = true;
-
-    // pull next audio output from the queue
     const audioBlob = audioQueue.shift();
+    if (!audioBlob) {
+      console.log('Audio blob is undefined');
+      return;
+    }
 
-    // IF audioBlob is unexpectedly undefined then do nothing
-    if (!audioBlob) return;
-
-    // converts Blob to AudioElement for playback
     const audioUrl = URL.createObjectURL(audioBlob);
     currentAudio = new Audio(audioUrl);
 
-    // play audio
-    currentAudio.play();
+    currentAudio.oncanplaythrough = () => {
+      console.log('Audio can play through');
+      currentAudio?.play().catch(error => {
+        console.error('Error playing audio:', error);
+        handleError(error);
+      });
+    };
 
-    // callback for when audio finishes playing
     currentAudio.onended = () => {
-      // update isPlaying state
+      console.log('Audio playback ended');
       isPlaying = false;
-
-      // attempt to pull next audio output from queue
       if (audioQueue.length) playAudio();
+    };
+
+    currentAudio.onerror = (event) => {
+      console.error('Audio error:', event);
+      handleError(new Error('Audio playback error'));
     };
   }
 
@@ -243,10 +283,10 @@ function handleError(error: any) {
    * callback function to handle a WebSocket message event
    *
    * API Reference:
-   * - `user_message`: https://dev.hume.ai/reference/empathic-voice-interface-evi/chat/chat#receive.User%20Message.type
-   * - `assistant_message`: https://dev.hume.ai/reference/empathic-voice-interface-evi/chat/chat#receive.Assistant%20Message.type
-   * - `audio_output`: https://dev.hume.ai/reference/empathic-voice-interface-evi/chat/chat#receive.Audio%20Output.type
-   * - `user_interruption`: https://dev.hume.ai/reference/empathic-voice-interface-evi/chat/chat#receive.User%20Interruption.type
+   * - `user_message`: https://dev.hume.ai/reference/empathic-voice-interface-evi/chat/chat#receive.User%20 Message.type
+   * - `assistant_message`: https://dev.hume.ai/reference/empathic-voice-interface-evi/chat/chat#receive.Assistant%20 Message.type
+   * - `audio_output`: https://dev.hume.ai/reference/empathic-voice-interface-evi/chat/chat#receive.Audio%20 Output.type
+   * - `user_interruption`: https://dev.hume.ai/reference/empathic-voice-interface-evi/chat/chat#receive.User%20 Interruption.type
    */
   async function handleWebSocketMessageEvent(
     message: Hume.empathicVoice.SubscribeEvent
@@ -259,6 +299,7 @@ function handleError(error: any) {
         const audioOutput = message.data;
         const blob = convertBase64ToBlob(audioOutput, mimeType);
         audioQueue.push(blob);
+        console.log('Audio added to queue. Queue length:', audioQueue.length);
         if (audioQueue.length >= 1) playAudio();
         break;
       case 'user_interruption':
@@ -317,6 +358,9 @@ function handleError(error: any) {
 
   // Initial button state
   updateToggleButtonState();
+
+  await enableAutoplay();
+  checkAudioContext();
 
   // ... (keep the rest of the code)
 })();
