@@ -4,11 +4,31 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Empathic Voice Interface</title>
+    <link rel="stylesheet" href="/src/styles.css">
   </head>
   <body>
+    <div id="logo">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 100">
+        <style>
+          .text { font-family: Arial, sans-serif; font-size: 72px; font-weight: bold; }
+          .circle1 { fill: none; stroke: #666666; stroke-width: 0.5; }
+          .circle2 { fill: none; stroke: #666666; stroke-width: 1; }
+          .circle3 { fill: none; stroke: #666666; stroke-width: 1.5; }
+          .circle4 { fill: none; stroke: #666666; stroke-width: 2; }
+          .circle5 { fill: none; stroke: #666666; stroke-width: 2.5; }
+          .center { fill: #666666; }
+        </style>
+        <circle cx="50" cy="50" r="36" class="circle1" />
+        <circle cx="50" cy="50" r="28" class="circle2" />
+        <circle cx="50" cy="50" r="21" class="circle3" />
+        <circle cx="50" cy="50" r="15" class="circle4" />
+        <circle cx="50" cy="50" r="10" class="circle5" />
+        <circle cx="50" cy="50" r="6" class="center" />
+        <text x="100" y="72" class="text" fill="#666666">lume</text>
+      </svg>
+    </div>
     <div id="app">
       <button id="toggle-btn">Start Conversation</button>
-      <!-- Remove the chat div -->
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
