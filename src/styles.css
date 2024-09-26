@@ -36,10 +36,10 @@ body {
 
 @keyframes glow {
   from {
-    box-shadow: 0 0 20px #ffa500, 0 0 40px #ffa500, 0 0 60px #ffa500;
+    box-shadow: 0 0 20px #888888, 0 0 40px #888888, 0 0 60px #888888;
   }
   to {
-    box-shadow: 0 0 40px #ffa500, 0 0 80px #ffa500, 0 0 120px #ffa500;
+    box-shadow: 0 0 40px #888888, 0 0 80px #888888, 0 0 120px #888888;
   }
 }
 
