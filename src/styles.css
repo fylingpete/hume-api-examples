@@ -18,26 +18,57 @@ body {
   height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: center;
-  background: linear-gradient(to bottom, #fdbf4c, #ecdab9);
+  align-items: flex-start; /* Change this from center to flex-start */
+  background: linear-gradient(to bottom, #fdc04e, #ecdab9);
+  padding-top: 15vh; /* Add this line to create space at the top */
+  font-family: 'Poppins', Arial, sans-serif;
 }
 
 #app {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+h1, h2 {
+  font-family: 'Poppins', Arial, sans-serif;
+  color: #333;
+  font-weight: 200;
+}
+
+h1 {
+  font-size: 2.5em;
+  margin-bottom: 0.5em;
+}
+
+h2 {
+  font-size: 2em;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+p {
+  font-family: 'Poppins', Arial, sans-serif;
+  font-size: 1.2em;
+  color: #666;
+  margin-bottom: 1.5em;
 }
 
 #toggle-btn {
-  padding: 15px 30px;
+  padding: 20px 80px;
   font-size: 1.2em;
   color: white;
   background-color: #333;
   border: none;
-  border-radius: 5px;
+  border-radius: 30px;
   cursor: pointer;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  font-family: 'Poppins', Arial, sans-serif;
 }
 
 #toggle-btn:hover {
@@ -50,11 +81,26 @@ body {
 
 @keyframes glow {
   from {
-    box-shadow: 0 0 20px #888888, 0 0 40px #888888, 0 0 60px #888888;
+    box-shadow: 0 0 20px #2f2f2f, 0 0 40px #2f2f2f, 0 0 60px #2f2f2f;
   }
   to {
-    box-shadow: 0 0 40px #888888, 0 0 80px #888888, 0 0 120px #888888;
+    box-shadow: 0 0 140px #2f2f2f, 0 0 180px #2f2f2f, 0 0 220px #2f2f2f;
   }
 }
+
+.spacer {
+  height: 10em; /* Adjust this value to increase or decrease space */
+}
+
+/* Remove or comment out these lines if they exist */
+/*
+#toggle-btn {
+  margin-bottom: 3em;
+}
+
+h2 {
+  margin-top: 2em;
+}
+*/
 
 /* Remove all other styles related to chat display */
