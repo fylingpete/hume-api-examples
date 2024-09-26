@@ -11,12 +11,13 @@ import {
 import './styles.css';
 
 (async () => {
-  const startBtn = document.querySelector<HTMLButtonElement>('button#start-btn');
-  const stopBtn = document.querySelector<HTMLButtonElement>('button#stop-btn');
-  const chat = document.querySelector<HTMLDivElement>('div#chat');
+  const toggleBtn = document.querySelector<HTMLButtonElement>('#toggle-btn');
+  // Remove the chat div reference
+  // const chat = document.querySelector<HTMLDivElement>('#chat');
 
-  startBtn?.addEventListener('click', connect);
-  stopBtn?.addEventListener('click', disconnect);
+  let isConnected = false;
+
+  toggleBtn?.addEventListener('click', toggleConnection);
 
   /**
    * the Hume Client, includes methods for connecting to EVI and managing the Web Socket connection
@@ -80,36 +81,38 @@ import './styles.css';
    * instantiates interface config and client, sets up Web Socket handlers, and establishes secure Web Socket connection
    */
   async function connect(): Promise<void> {
-    // instantiate the HumeClient with credentials to make authenticated requests
-    if (!client) {
-      client = new HumeClient({
-        apiKey: import.meta.env.VITE_HUME_API_KEY || '',
-        secretKey: import.meta.env.VITE_HUME_SECRET_KEY || '',
+    try {
+      // instantiate the HumeClient with credentials to make authenticated requests
+      if (!client) {
+        client = new HumeClient({
+          apiKey: import.meta.env.VITE_HUME_API_KEY || '',
+          secretKey: import.meta.env.VITE_HUME_SECRET_KEY || '',
+        });
+      }
+
+      // instantiates WebSocket and establishes an authenticated connection
+      socket = await client.empathicVoice.chat.connect({
+        configId: import.meta.env.VITE_HUME_CONFIG_ID || null,
+        resumedChatGroupId: chatGroupId,
       });
+
+      socket.on('open', handleWebSocketOpenEvent);
+      socket.on('message', handleWebSocketMessageEvent);
+      socket.on('error', handleWebSocketErrorEvent);
+      socket.on('close', handleWebSocketCloseEvent);
+
+      isConnected = true;
+      updateToggleButtonState();
+    } catch (error) {
+      handleError();
+      console.error('Failed to connect:', error);
     }
-
-    // instantiates WebSocket and establishes an authenticated connection
-    socket = await client.empathicVoice.chat.connect({
-      configId: import.meta.env.VITE_HUME_CONFIG_ID || null,
-      resumedChatGroupId: chatGroupId,
-    });
-
-    socket.on('open', handleWebSocketOpenEvent);
-    socket.on('message', handleWebSocketMessageEvent);
-    socket.on('error', handleWebSocketErrorEvent);
-    socket.on('close', handleWebSocketCloseEvent);
-
-    // update ui state
-    toggleBtnStates();
   }
 
   /**
    * stops audio capture and playback, and closes the Web Socket connection
    */
   function disconnect(): void {
-    // update ui state
-    toggleBtnStates();
-
     // stop audio playback
     stopAudio();
 
@@ -126,8 +129,11 @@ import './styles.css';
       chatGroupId = undefined;
     }
 
-    // closed the Web Socket connection
+    // close the Web Socket connection
     socket?.close();
+
+    isConnected = false;
+    updateToggleButtonState();
   }
 
   /**
@@ -239,37 +245,16 @@ import './styles.css';
   async function handleWebSocketMessageEvent(
     message: Hume.empathicVoice.SubscribeEvent
   ): Promise<void> {
-    /* place logic here which you would like to invoke when receiving a message through the socket */
-
-    // handle messages received through the WebSocket (messages are distinguished by their "type" field.)
     switch (message.type) {
-      // save chat_group_id to resume chat if disconnected
       case 'chat_metadata':
         chatGroupId = message.chatGroupId;
         break;
-
-      // append user and assistant messages to UI for chat visibility
-      case 'user_message':
-      case 'assistant_message':
-        const { role, content } = message.message;
-        const topThreeEmotions = extractTopThreeEmotions(message);
-        appendMessage(role, content ?? '', topThreeEmotions);
-        break;
-
-      // add received audio to the playback queue, and play next audio output
       case 'audio_output':
-        // convert base64 encoded audio to a Blob
         const audioOutput = message.data;
         const blob = convertBase64ToBlob(audioOutput, mimeType);
-
-        // add audio Blob to audioQueue
         audioQueue.push(blob);
-
-        // play the next audio output
         if (audioQueue.length >= 1) playAudio();
         break;
-
-      // stop audio playback, clear audio playback queue, and update audio playback state on interrupt
       case 'user_interruption':
         stopAudio();
         break;
@@ -280,81 +265,54 @@ import './styles.css';
    * callback function to handle a WebSocket error event
    */
   function handleWebSocketErrorEvent(error: Error): void {
-    /* place logic here which you would like invoked when receiving an error through the socket */
-    console.error(error);
+    console.error('WebSocket error:', error);
+    handleError();
   }
 
   /**
    * callback function to handle a WebSocket closed event
    */
   async function handleWebSocketCloseEvent(): Promise<void> {
-    /* place logic here which you would like invoked when the socket closes */
-
-    // reconnect to the socket if disconnect was unintentional
-    if (connected) await connect();
-
     console.log('Web socket connection closed');
+    if (connected) {
+      try {
+        await connect();
+      } catch (error) {
+        handleError();
+      }
+    } else {
+      handleError();
+    }
   }
 
   /**
-   * adds message to Chat in the webpage's UI
-   *
-   * @param role the speaker associated with the audio transcription
-   * @param content transcript of the audio
-   * @param topThreeEmotions the top three emotion prediction scores for the message
+   * updates the toggle button state
    */
-  function appendMessage(
-    role: Hume.empathicVoice.Role,
-    content: string,
-    topThreeEmotions: { emotion: string; score: any }[]
-  ): void {
-    // generate chat card component with message content and emotion scores
-    const chatCard = new ChatCard({
-      role,
-      timestamp: new Date().toLocaleTimeString(),
-      content,
-      scores: topThreeEmotions,
-    });
-
-    // append chat card to the UI
-    chat?.appendChild(chatCard.render());
-
-    // scroll to the bottom to view most recently added message
-    if (chat) chat.scrollTop = chat.scrollHeight;
+  function updateToggleButtonState(): void {
+    if (toggleBtn) {
+      toggleBtn.textContent = isConnected ? 'Stop Conversation' : 'Start Conversation';
+      if (isConnected) {
+        toggleBtn.classList.add('active');
+      } else {
+        toggleBtn.classList.remove('active');
+      }
+    }
   }
 
-  /**
-   * toggles `start` and `stop` buttons' disabled states
-   */
-  function toggleBtnStates(): void {
-    if (startBtn) startBtn.disabled = !startBtn.disabled;
-    if (stopBtn) stopBtn.disabled = !stopBtn.disabled;
+  async function toggleConnection(): Promise<void> {
+    if (isConnected) {
+      disconnect();
+    } else {
+      await connect();
+    }
+    // Remove this line as it's now called in connect() and disconnect()
+    // updateToggleButtonState();
   }
 
-  /**
-   * takes a received `user_message` or `assistant_message` and extracts the top 3 emotions from the
-   * predicted expression measurement scores.
-   */
-  function extractTopThreeEmotions(
-    message: Hume.empathicVoice.UserMessage | Hume.empathicVoice.AssistantMessage
-  ): { emotion: string; score: string }[] {
-    // extract emotion scores from the message
-    const scores = message.models.prosody?.scores;
+  // Initial button state
+  updateToggleButtonState();
 
-    // convert the emotions object into an array of key-value pairs
-    const scoresArray = Object.entries(scores || {});
-
-    // sort the array by the values in descending order
-    scoresArray.sort((a, b) => b[1] - a[1]);
-
-    // extract the top three emotions and convert them back to an object
-    const topThreeEmotions = scoresArray.slice(0, 3).map(([emotion, score]) => ({
-      emotion,
-      score: (Math.round(Number(score) * 100) / 100).toFixed(2),
-    }));
-
-    return topThreeEmotions;
-  }
+  // ... (keep the rest of the code)
 })();
 
 /**
